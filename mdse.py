@@ -182,6 +182,9 @@ def mds(dissimilarity, dimensions, jobs, log):
 
 def genfromtxt(filename, skip_header=0, skip_column=0, dtype=np.float32, delimiter=','):
     with open(filename) as f:
+        for it in range(skip_header):
+            log.info("skipping header row {0}".format(it))
+            f.readline()
         num_cols = len(f.readline().split(delimiter))
         # print("cols: {0}".format(num_cols))
     return np.genfromtxt(filename,
