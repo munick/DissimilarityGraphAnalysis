@@ -52,10 +52,10 @@ def main():
     else:
         log.info("Reading dissimilarity from: {0}".format(inputFile))
         dissimilarity = genfromtxt(inputFile,
-                                       skip_header=skipHeader, skip_column=skipHeader, dtype=np.float32, delimiter=',')
+                                   skip_header=skipHeader, skip_column=skipHeader, dtype=np.float64, delimiter=params.delimiter.decode('string-escape'))
         log.info("Done Reading. Shape: {0}".format(dissimilarity.shape))
 
-    bestStress, bestDim, bestSimilarity = find_best_mds(dissimilarity, 22, minDimensions, embeddingComparator,
+    bestStress, bestDim, bestSimilarity = find_best_mds(dissimilarity, maxDimensions, minDimensions, embeddingComparator,
                                                         logFile, outputDirectory, jobs)
     # output to readmed
     with open(outputDirectory + readmeFilename, 'a+') as f:
@@ -70,24 +70,25 @@ def find_best_mds(dissimilarity, highest_dim, lowest_dim, embeddingComparator, l
     for dim in range(lowest_dim, highest_dim + 1):
         isBest = False
         if embeddingComparator == 'chisquared':
-            similarity, coordinates = compare_mds_per_mol_distance(dissimilarity, moleculeCount, dim, jobs, log)
+            similarity, embedding, stress = compare_mds_per_mol_distance(dissimilarity, moleculeCount, dim, jobs, log)
             isBest = bestSimilarity is None or similarity > bestSimilarity
 
-        elif embeddingComparator == 'stress':
+        # elif embeddingComparator == 'stress':
+        else:
             # run mds on input file
-            coordinates = mds(dissimilarity, dim, jobs, log)
-            similarity = coordinates.stress_
+            embedding, stress = mds(dissimilarity, dim, jobs, log)
+            similarity = stress
             isBest = bestSimilarity is None or similarity < bestSimilarity
 
         logText = "{1}: similarity: {0}\tstress:{2} {3}" \
-            .format(similarity, dim, coordinates.stress_, '(BEST)' if isBest else '')
+            .format(similarity, dim, stress, '(BEST)' if isBest else '')
         log.info(logText)
         log_to_file(logFile, logText)
         if isBest:
             bestSimilarity = similarity
-            bestStress = coordinates.stress_
+            bestStress = stress
             bestDim = dim
-        output_mds(coordinates, similarity, dim, embeddingComparator, outputDirectory)
+        output_mds(embedding, similarity, dim, embeddingComparator, outputDirectory)
 
     logMessage = "#######################\nbestDim: {0}\t\tbestSimilarity: {1}\t\tbestStress: {2}\t\trangeTested: {3}\n" \
         .format(bestDim, bestSimilarity, bestStress, (highest_dim, lowest_dim))
@@ -96,7 +97,7 @@ def find_best_mds(dissimilarity, highest_dim, lowest_dim, embeddingComparator, l
     return bestStress, bestDim, bestSimilarity
 
 
-def output_mds(coordinates, similarity, dim, embeddingComparator, outputDirectory):
+def output_mds(embedding, similarity, dim, embeddingComparator, outputDirectory):
     readme = outputDirectory + readmeFilename
     # create dir if not already there
     if not os.path.exists(outputDirectory):
@@ -112,15 +113,15 @@ def output_mds(coordinates, similarity, dim, embeddingComparator, outputDirector
 
     log.info("writing file dim: {0}".format(dim))
     # write coordinates to file
-    np.save(outputDirectory + filename, coordinates.embedding_)
-    np.savetxt(outputDirectory + filename + '.txt', coordinates.embedding_)
+    np.save(outputDirectory + filename, embedding)
+    # np.savetxt(outputDirectory + filename + '.txt', embedding)
 
 
 def compare_mds_all_distances(dissimilarity, moleculeCount, dimensions, log):
     # run mds on input file
-    coordinates = mds(dissimilarity, dimensions, log)
+    embedding, stress = mds(dissimilarity, dimensions, log)
     # calculate euclidean distances of exported coordinates
-    distances = euclidean_distances(coordinates.embedding_)
+    distances = euclidean_distances(embedding)
     # histogram distances
     distHist, distHistEdges = np.histogram(distances, moleculeCount)
     # histogram dissimilarities
@@ -132,9 +133,9 @@ def compare_mds_all_distances(dissimilarity, moleculeCount, dimensions, log):
 
 def compare_mds_per_mol_distance(dissimilarity, moleculeCount, dimensions, jobs, log):
     # run mds on input file
-    coordinates = mds(dissimilarity, dimensions, jobs, log)
+    embedding, stress = mds(dissimilarity, dimensions, jobs, log)
     # calculate euclidean distances of exported coordinates
-    distances = euclidean_distances(coordinates.embedding_)
+    distances = euclidean_distances(embedding)
     # normalize them from 0 to 1
     normalizedDistances = normalize(distances)
     distHist = np.empty((moleculeCount, moleculeCount))
@@ -160,20 +161,23 @@ def compare_mds_per_mol_distance(dissimilarity, moleculeCount, dimensions, jobs,
         sum_dismHist_distHist += stats.chisquare(dissimilarityHist[i], distHist[i])
 
     dismHist_distHist = sum_dismHist_distHist / moleculeCount
-    return dismHist_distHist, coordinates
+    return dismHist_distHist, embedding, stress
 
 
 def mds(dissimilarity, dimensions, jobs, log):
-    # log.info("Creating MDS")
+    log.info("Creating MDS")
     # metric mds dimensions=3, SMACOF threshold of 100 iterations or 0.001 relative change (there is no time-limit)
     # mds = manifold.MDS(metric=True, verbose=2, dissimilarity="precomputed", n_components=dimensions, n_jobs=-2, max_iter=100, eps=0.001)
 
     # metric mds dimensions=3, defaults:
-    mds = manifold.MDS(metric=True, verbose=1, dissimilarity="precomputed", n_components=dimensions, max_iter=500,
+    mmds = manifold.MDS(metric=False, verbose=1, dissimilarity="precomputed", n_components=dimensions, max_iter=500,
                        eps=0, n_jobs=jobs)
-
+    mmds.fit(dissimilarity)
+    embedding = np.copy(mmds.embedding_)
+    stress = mmds.stress_
+    # del mmds
     # log.info("Fitting mds to dissimilarity")
-    return mds.fit(dissimilarity)
+    return embedding, stress
 
 
 def genfromtxt(filename, skip_header=0, skip_column=0, dtype=np.float32, delimiter=','):
@@ -245,12 +249,12 @@ def arguments():
                         help='Smallest dimension to reduce to.')
     parser.add_argument('-maxDim', '--maxDimensions',
                         type=int,
-                        default=75,
+                        default=95,
                         nargs='?',
                         help='Smallest dimension to reduce to. If not set, calculated from input size.')
     parser.add_argument('-skipHeader', '--skipHeader',
                         type=int,
-                        default=1,
+                        default=0,
                         nargs='?',
                         help='Leading columns and rows in the input file will be skipped')
     parser.add_argument('-c', '--embeddingComparator',
