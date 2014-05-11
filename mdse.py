@@ -170,7 +170,7 @@ def mds(dissimilarity, dimensions, jobs, log):
     # mds = manifold.MDS(metric=True, verbose=2, dissimilarity="precomputed", n_components=dimensions, n_jobs=-2, max_iter=100, eps=0.001)
 
     # metric mds dimensions=3, defaults:
-    mmds = manifold.MDS(metric=False, verbose=1, dissimilarity="precomputed", n_components=dimensions, max_iter=500,
+    mmds = manifold.MDS(metric=True, verbose=1, dissimilarity="precomputed", n_components=dimensions, max_iter=500,
                        eps=0, n_jobs=jobs)
     mmds.fit(dissimilarity)
     embedding = np.copy(mmds.embedding_)
