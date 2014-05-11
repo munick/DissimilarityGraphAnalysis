@@ -186,6 +186,7 @@ def genfromtxt(filename, skip_header=0, skip_column=0, dtype=np.float32, delimit
             log.info("skipping header row {0}".format(it))
             f.readline()
         num_cols = len(f.readline().split(delimiter))
+        log.info("num cols found: {0}".format(num_cols))
         # print("cols: {0}".format(num_cols))
     return np.genfromtxt(filename,
                          dtype=dtype, delimiter=delimiter, usecols=range(skip_column, num_cols),
