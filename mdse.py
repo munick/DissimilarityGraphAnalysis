@@ -1,20 +1,16 @@
 import os
 
 __author__ = 'nmew'
+__version__ = '0.1'
 
 import sys
-
 sys.path.insert(0, '/opt/local/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages')
-
 import csv
 import logging
 import numpy as np
-
 from sklearn import manifold
 from sklearn.metrics import euclidean_distances
 from sklearn.preprocessing import normalize
-from sklearn.decomposition import PCA
-
 from scipy import stats
 
 log = None
@@ -236,8 +232,8 @@ def arguments():
     from argparse import ArgumentParser
     from argparse import FileType
     #  "Run MDS on input distance file and save to output file"
-    parser = ArgumentParser(prog="Dissimilarity Graph Analysis")
-    parser.add_argument('--version', action='version', version='%(prog)s 0.1')
+    parser = ArgumentParser(prog="Dissimilarity Graph Analysis - Find Optimal Dimension", version=__version__)
+    parser.add_argument('--version', action='version', version='%(prog)s v%(version)s')
     parser.add_argument('pythonScript', metavar='pythonScript')
     parser.add_argument('dissimilarityInputFile',
                         type=str,
@@ -290,7 +286,7 @@ def arguments():
                         type=FileType,
                         default=sys.stderr,
                         nargs='?',
-                        help='Path to log errors [default: %(default)s]')
+                        help='Path to log errors, info, etc. [default: %(default)s]')
     parser.add_argument('-logFile', '--logFile',
                         type=str,
                         default='output/log.txt',

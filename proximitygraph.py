@@ -1,4 +1,5 @@
 __author__ = 'nmew'
+__version__ = '0.1'
 """
 proximitygraph
 =====================
@@ -25,14 +26,10 @@ def example():
     coordinates = gen_fake_coordinates(points, dim)
 
     print("gen distances")
-    coordinateRelationships = pdist(coordinates, 'euclidean')
-    relationalMatrix = squareform(coordinateRelationships)
-    # replace diagonal with Nans
-    np.fill_diagonal(relationalMatrix, np.NaN)
+    relationalMatrix = gen_distance_matrix(coordinates)
 
     print("gen all edges from {0} coordinates".format(relationalMatrix.shape[0]))
-    allEdges = itertools.combinations(range(relationalMatrix.shape[0]), 2)
-    edgeCount = nCr(relationalMatrix.shape[0], 2)
+    allEdges, edgeCount = get_complete_graph(relationalMatrix)
     print("edgeCount: {0}".format(edgeCount))
 
     starttime = time.time()
@@ -70,9 +67,16 @@ def example():
     print("5nn edgecount {0}".format(nnEdgeCount))
 
 
-def nCr(n,r):
-    f = math.factorial
-    return f(n) / f(r) / f(n-r)
+def gen_distance_matrix(coordinates, metric='euclidean'):
+    print("calc distances of numpoints,dim={0}".format(coordinates.shape))
+    coordinateRelationships = pdist(coordinates, metric)    # calc distances
+    relationalMatrix = squareform(coordinateRelationships)  # make it a matrix
+    np.fill_diagonal(relationalMatrix, np.NaN)              # replace diagonal with Nans
+    return relationalMatrix
+
+
+def completeSize(n):
+    return (n * (n-1)) / 2
 
 
 def gen_fake_coordinates(n_samples=50, dim=2):
@@ -84,20 +88,10 @@ def gen_fake_coordinates(n_samples=50, dim=2):
     return X_true
 
 
-
-
-# nearest neighbor graph
-def getNearestNeighborGraph(relationMatrix, getBestScore):
-    edges = set()
-    for i, relationArray in enumerate(relationMatrix):
-        try:
-            nn = getBestScore(relationArray)
-            if not np.isnan(nn):
-                edges.add(frozenset((i, nn)))
-        except ValueError:  # numpy 1.8 raises exception instead of warn & null value!
-            continue
-
-    return edges
+def get_complete_graph(relationMatrix):
+    edges = itertools.combinations(range(relationMatrix.shape[0]), 2)
+    edgeCount = completeSize(relationMatrix.shape[0])
+    return edges, edgeCount
 
 
 def get_nearest_k_neighbor_graph(relationMatrix, k):
@@ -115,7 +109,7 @@ def get_nearest_k_neighbor_graph(relationMatrix, k):
             # if not np.isnan(neighbor):
             edges.add(frozenset((i, neighbor)))
 
-    return edges
+    return edges, len(edges)
 
 
 # gabriel graph
@@ -174,9 +168,10 @@ def parallel_proximity_graph(inputEdges, edgeCount, relationMatrix, graphWorker,
         edges = edges.union(queue.get())
         print("{0} process complete".format(i))
 
-    return edges
+    return edges, len(edges)
 
 
+# Relative Neighbor graph
 def rng_worker(inputEdges, queue):
     """
     Work done by each processor
@@ -326,6 +321,20 @@ def gg_worker(inputEdges, queue):
 #             edges.add(frozenset((p, q)))                            # add (p,q) tuple to edges set
 #
 #     return getPointGroupMapping(edges), edges
+
+# # nearest neighbor graph
+# def getNearestNeighborGraph(relationMatrix, getBestScore):
+#     edges = set()
+#     for i, relationArray in enumerate(relationMatrix):
+#         try:
+#             nn = getBestScore(relationArray)
+#             if not np.isnan(nn):
+#                 edges.add(frozenset((i, nn)))
+#         except ValueError:  # numpy 1.8 raises exception instead of warn & null value!
+#             continue
+#
+#     return edges
+#
 
 
 # Identify Clusters/Neighborhoods in edges
