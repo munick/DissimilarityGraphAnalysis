@@ -46,7 +46,7 @@ def main():
     # generate dissimilarity if test is set
     if testSize > 0:
         log.info("Generating dissimilarity of size {0}".format(testSize))
-        dissimilarity = gen_fake_dissimilarities(testSize)
+        dissimilarity = gen_fake_dissimilarities(testSize, 7)
         log.info("Done Generating. Shape: {0}".format(dissimilarity.shape))
     # otherwise, read from input
     else:
@@ -193,10 +193,10 @@ def genfromtxt(filename, skip_header=0, skip_column=0, dtype=np.float32, delimit
                          skip_header=skip_header)
 
 
-def gen_fake_dissimilarities(n_samples=50):
+def gen_fake_dissimilarities(n_samples=50, dim=2):
     seed = np.random.RandomState(seed=3)
-    X_true = seed.randint(0, 20, 2 * n_samples).astype(np.float)
-    X_true = X_true.reshape((n_samples, 2))
+    X_true = seed.randint(0, 20, dim * n_samples).astype(np.float)
+    X_true = X_true.reshape((n_samples, dim))
     # Center the data
     X_true -= X_true.mean()
     return euclidean_distances(X_true)
