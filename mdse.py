@@ -233,7 +233,7 @@ def arguments():
     from argparse import FileType
     #  "Run MDS on input distance file and save to output file"
     parser = ArgumentParser(prog="Dissimilarity Graph Analysis - Find Optimal Dimension", version=__version__)
-    parser.add_argument('--version', action='version', version='%(prog)s v%(version)s')
+    # parser.add_argument('--version', action='version', version='%(prog)s v%(version)s')
     parser.add_argument('pythonScript', metavar='pythonScript')
     parser.add_argument('dissimilarityInputFile',
                         type=str,

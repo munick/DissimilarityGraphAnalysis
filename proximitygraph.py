@@ -101,7 +101,7 @@ def get_nearest_k_neighbor_graph(relationMatrix, k):
     if k > 1:
         neighbors = np.argsort(relationMatrix, axis=1)[:, 0:k]      # by row
     elif k == 1:
-        neighbors = np.nanmin(relationMatrix, axis=1)[np.newaxis].T # by row
+        neighbors = np.nanargmin(relationMatrix, axis=1)[np.newaxis].T # by row
 
     for i, localneighbors in enumerate(neighbors):
         # print("{0} has {1} neighbors".format(i, len(localneighbors)))
@@ -113,18 +113,18 @@ def get_nearest_k_neighbor_graph(relationMatrix, k):
 
 
 # gabriel graph
-def get_gabriel_graph(inputEdges, edgeCount, relationMatrix):
+def get_gabriel_graph(inputEdges, edgeCount, relationMatrix, n_jobs=1):
     print("calculating gg in parallel ...")
-    return parallel_proximity_graph(inputEdges, edgeCount, relationMatrix, gg_worker)
+    return parallel_proximity_graph(inputEdges, edgeCount, relationMatrix, gg_worker, n_jobs)
 
 
 # relative neighbor graph
-def get_relative_neighbor_graph(inputEdges, edgeCount, relationMatrix):
+def get_relative_neighbor_graph(inputEdges, edgeCount, relationMatrix, n_jobs=1):
     print("calculating rng in parallel ...")
-    return parallel_proximity_graph(inputEdges, edgeCount, relationMatrix, rng_worker)
+    return parallel_proximity_graph(inputEdges, edgeCount, relationMatrix, rng_worker, n_jobs)
 
 
-def parallel_proximity_graph(inputEdges, edgeCount, relationMatrix, graphWorker, n_jobs=0):
+def parallel_proximity_graph(inputEdges, edgeCount, relationMatrix, graphWorker, n_jobs=1):
     """
     Returns the relative neighborhood graph of the given relational matrix.
 
@@ -141,8 +141,12 @@ def parallel_proximity_graph(inputEdges, edgeCount, relationMatrix, graphWorker,
     print("Initializing queue")
     queue = multiprocessing.Queue()                                         # results queue
     print("Determining CPU count")
-    if n_jobs <= 0:
-        n_jobs = max(1, multiprocessing.cpu_count() - n_jobs)
+    if n_jobs < 0:
+        n_jobs = max(1, multiprocessing.cpu_count() + 1 + n_jobs)           # if negative, subtract jobs from cpu_count
+    elif n_jobs > 0:
+        n_jobs = min(n_jobs, multiprocessing.cpu_count())                   # if positive make sure it's below cpu_count
+    else:
+        raise ValueError("can't run graph calculation with zero jobs")      # if zero throw error
     numberOfProcesses = min(edgeCount, n_jobs)                              # number of processors to use
     print("CPU count: {0}".format(numberOfProcesses))
     print("Determining data per process")
