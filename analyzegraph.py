@@ -2,6 +2,7 @@ __author__ = 'nmew'
 __version__ = 0.1
 import sys
 sys.path.insert(0,'/opt/local/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages')
+import os
 import logging
 import numpy as np
 from graph_tool.all import *
@@ -11,8 +12,7 @@ def main():
     # single dimension
     # params = parser.parse_args(['', 'output/test/{0}_graphs/', 'output/test/', '-pos', 'output/test/2_coordinates.npy'])
     # range of dimensions
-    # params = parser.parse_args(['', 'output/test/{0}_graphs/', 'output/test/', '-pos', 'output/test/2_coordinates.npy', '-d', '2', '9'])
-
+    # params = parser.parse_args(['', 'output/test/{0}_graphs/', 'output/test/', '-pos', 'output/test/2_coordinates.npy', '-d', '6', '8'])
     params = parser.parse_args(sys.argv)
     logging.basicConfig(stream=params.log)
     global log
@@ -35,9 +35,39 @@ def main():
 
     graph = generateGraph(graphInputDirectory, graphFilenamePattern, positionFile, outputDirectory, graphNames, minDim, maxDim)
     saveGraph(graph, minDim, maxDim, outputDirectory)
-    # for dim in range(minDim, maxDim+1):
-    #     outputProxiGraphOverlaps(graph, ['gg', '2nn'], dim, outputDirectory + "rng_gg_{0}d_overlap.png".format(minDim))
+    log.info("creating graph images")
+    imagedir = outputDirectory + "graphImages/"
+    if not os.path.exists(imagedir):
+        os.makedirs(imagedir)
 
+    # output graph images
+    calcAndDrawBetweeness(graph, minDim, maxDim, graphNames, outputDirectory)
+    # for dim in range(minDim, maxDim+1):
+    #     for gname in graphNames:
+    #         propertyName = proxiGraphPMName(gname, dim)
+    #         filter = graph.edge_properties[propertyName]
+    #         # outputProxiGraphOverlaps(graph, ['gg', '2nn'], dim, outputDirectory + "rng_gg_{0}d_overlap.png".format(minDim))
+    #         graph_draw(graph, pos=graph.vertex_properties['pos'], output_size=(800, 800), vertex_size=8,
+    #                    edge_pen_width=filter, output=imagedir + "{1}_{0}d_overlap.png".format(dim, gname))
+
+
+def calcAndDrawBetweeness(graph, minDim, maxDim, graphNames, outputDirectory):
+    log.info("creating graph images and betweenness")
+    imagedir = outputDirectory + "graphImages/"
+    if not os.path.exists(imagedir):
+        os.makedirs(imagedir)
+    log.info("\ncalculating betweenness of all graphs in all dimensions")
+    for dim in range(minDim, maxDim+1):
+        log.info("calculating betweenness of all {0}d graphs".format(dim))
+        for gname in graphNames:
+            log.info("\t{0} graph".format(gname))
+            graph.set_edge_filter(None)
+            propertyName = proxiGraphPMName(gname, dim)
+            efilter = graph.edge_properties[propertyName]
+            graph.set_edge_filter(efilter)
+            bv, be = betweenness(graph)
+            graph_draw(graph, pos=graph.vertex_properties['pos'], output_size=(800, 800), vertex_size=8,
+                       vertex_fill_color=bv, output=imagedir + "{1}_{0}d.png".format(dim, gname))
 
 def saveGraph(graph, minDim, maxDim, outputDirectory):
     graphFileName = "graph_{0}-{1}d.xml.gz".format(minDim, maxDim)
