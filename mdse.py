@@ -35,6 +35,7 @@ def main():
     minDimensions = params.minDimensions                # min dimensions to scale to
     maxDimensions = params.maxDimensions                # max dimensions to scale to
     skipHeader = params.skipHeader                      # skip this many rows in input file
+    toHeader = params.toHeader                          # last row to read in input file
     testSize = params.test                              # size of test dissimilarity matrix
     jobs = params.jobs                                   # number of processes to use in mds
     log.info("** Dissimilarity Graph Analysis **\n")
@@ -48,7 +49,7 @@ def main():
     else:
         log.info("Reading dissimilarity from: {0}".format(inputFile))
         dissimilarity = genfromtxt(inputFile,
-                                   skip_header=skipHeader, skip_column=skipHeader, dtype=np.float64, delimiter=params.delimiter.decode('string-escape'))
+                                   skip_header=skipHeader, skip_column=skipHeader, to_header=toHeader, to_column=toHeader, dtype=np.float64, delimiter=params.delimiter.decode('string-escape'))
         log.info("Done Reading. Shape: {0}".format(dissimilarity.shape))
 
     bestStress, bestDim, bestSimilarity = find_best_mds(dissimilarity, maxDimensions, minDimensions, embeddingComparator,
@@ -110,7 +111,7 @@ def output_mds(embedding, similarity, dim, embeddingComparator, outputDirectory)
     log.info("writing file dim: {0}".format(dim))
     # write coordinates to file
     np.save(outputDirectory + filename, embedding)
-    # np.savetxt(outputDirectory + filename + '.txt', embedding)
+    np.savetxt(outputDirectory + filename + '.txt', embedding)
 
 
 def compare_mds_all_distances(dissimilarity, moleculeCount, dimensions, log):
@@ -166,8 +167,8 @@ def mds(dissimilarity, dimensions, jobs, log):
     # mds = manifold.MDS(metric=True, verbose=2, dissimilarity="precomputed", n_components=dimensions, n_jobs=-2, max_iter=100, eps=0.001)
 
     # metric mds dimensions=3, defaults:
-    mmds = manifold.MDS(metric=True, verbose=1, dissimilarity="precomputed", n_components=dimensions, max_iter=500,
-                       eps=0, n_jobs=jobs)
+    mmds = manifold.MDS(metric=False, verbose=1, dissimilarity="precomputed", n_components=dimensions, max_iter=500,
+                        n_jobs=jobs)
     mmds.fit(dissimilarity)
     embedding = np.copy(mmds.embedding_)
     stress = mmds.stress_
@@ -176,17 +177,22 @@ def mds(dissimilarity, dimensions, jobs, log):
     return embedding, stress
 
 
-def genfromtxt(filename, skip_header=0, skip_column=0, dtype=np.float32, delimiter=','):
+def genfromtxt(filename, skip_header=0, skip_column=0,  to_header=0, to_column=0, dtype=np.float32, delimiter=','):
     with open(filename) as f:
-        for it in range(skip_header+1):
+        for it in range(skip_header):
             log.info("skipping header row {0}".format(it))
             f.readline()
         num_cols = len(f.readline().split(delimiter))
-        log.info("num cols found: {0}\tdelimiter: {1}".format(num_cols, delimiter))
+
+        if to_column <= 0:
+            to_column = num_cols
+
+        skip_footer = num_cols - to_header
+        log.info("num cols to use: {0}\tdelimiter: {1}".format(to_column, delimiter))
         # print("cols: {0}".format(num_cols))
     return np.genfromtxt(filename,
-                         dtype=dtype, delimiter=delimiter, usecols=range(skip_column, num_cols),
-                         skip_header=skip_header)
+                         dtype=dtype, delimiter=delimiter, usecols=range(skip_column, to_column),
+                         skip_header=skip_header, skip_footer=skip_footer)
 
 
 def gen_fake_dissimilarities(n_samples=50, dim=2):
@@ -257,6 +263,11 @@ def arguments():
                         default=0,
                         nargs='?',
                         help='Leading columns and rows in the input file will be skipped')
+    parser.add_argument('-toHeader', '--toHeader',
+                        type=int,
+                        default=0,
+                        nargs='?',
+                        help='Ending columns and rows in the input file will be skipped')
     parser.add_argument('-c', '--embeddingComparator',
                         type=str,
                         default='stress',
