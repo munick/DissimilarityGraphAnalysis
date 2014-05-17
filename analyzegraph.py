@@ -6,12 +6,105 @@ import os
 import logging
 import numpy as np
 from graph_tool.all import *
+import matplotlib.pyplot as plt
 
 
 logging.basicConfig(stream=sys.stderr)
 global log
 log = logging.getLogger('analyzegraph')
 log.setLevel(logging.DEBUG)
+
+
+def draw_all_dim_intersections(graph, minDim, maxDim, graphNames, filenameTemplate):
+    log.info("draw_all_dim_intersections")
+    for gname in graphNames:
+        graph.set_edge_filter(None)
+        u = GraphView(graph)
+        propertyName = proxiGraphPMName(gname, minDim)
+        filter = graph.edge_properties[propertyName].a.base
+        # filter each successive dim
+        for dim in range(minDim+1, maxDim+1):
+            propertyName = proxiGraphPMName(gname, dim)
+            dfilter = graph.edge_properties[propertyName].a.base
+            filter = np.logical_and(filter, dfilter)
+        u = GraphView(u, efilt=filter)
+        graph_draw(u, pos=graph.vertex_properties['pos'], output_size=(800, 800), vertex_size=8,
+                   output=filenameTemplate.format(minDim, maxDim, gname))
+
+
+def draw_all_graph_intersections(graph, minDim, maxDim, graphNames, filenameTemplate):
+    log.info("draw_all_graph_intersections")
+    for dim in range(minDim, maxDim+1):
+        graph.set_edge_filter(None)
+        u = GraphView(graph)
+        propertyName = proxiGraphPMName(graphNames[0], dim)
+        efilter = graph.edge_properties[propertyName].a.base
+        # filter each successive dim
+        for gname in graphNames:
+            propertyName = proxiGraphPMName(gname, dim)
+            dfilter = graph.edge_properties[propertyName].a.base
+            efilter = np.logical_and(efilter, dfilter)
+        u = GraphView(u, efilt=efilter)
+        graph_draw(u, pos=graph.vertex_properties['pos'], output_size=(800, 800), vertex_size=8,
+                   output=filenameTemplate.format(dim))
+
+
+def draw_all_graph_and_dim_intersections(graph, minDim, maxDim, graphNames, filenameTemplate):
+    log.info("draw_all_graph_and_dim_intersections")
+    graph.set_edge_filter(None)
+    u = GraphView(graph)
+    propertyName = proxiGraphPMName(graphNames[0], minDim)
+    efilter = graph.edge_properties[propertyName].a.base
+    for dim in range(minDim, maxDim+1):
+        # filter each successive dim
+        for gname in graphNames:
+            propertyName = proxiGraphPMName(gname, dim)
+            dfilter = graph.edge_properties[propertyName].a.base
+            efilter = np.logical_and(efilter, dfilter)
+    u = GraphView(u, efilt=efilter)
+    graph_draw(u, pos=graph.vertex_properties['pos'], output_size=(800, 800), vertex_size=8,
+               output=filenameTemplate)
+
+
+def plot_centrality_across_dim_per_graph(graph, minDim, maxDim, graphNames, filenameTemplate):
+    log.info("plot_centrality_across_dim_per_graph")
+    graph.set_edge_filter(None)
+    vertexCount = graph.num_vertices()
+    betweenness = {}    # same as property name
+    x = range(vertexCount)
+    for gname in graphNames:
+        betweenMin = np.empty(vertexCount)
+        betweenMax = np.empty(vertexCount)
+        betweenAvg = np.zeros(vertexCount)
+        graph.set_edge_filter(None)
+        # get betweenness each dim
+        for dim in range(minDim, maxDim+1):
+            propertyName = proxiGraphPMName(gname, dim)
+            efilter = graph.edge_properties[propertyName]
+            graph.set_edge_filter(None)
+            graph.set_edge_filter(efilter)
+            log.info("calc betweenness of " + propertyName)
+            bv, be = betweenness(graph)
+            betweenness[propertyName] = bv
+            betweenMin = np.fmin(bv.a.base, betweenMin)
+            betweenMax = np.fmax(bv.a.base, betweenMax)
+            betweenAvg = np.add(bv.a.base, betweenAvg)
+
+        betweenAvg = betweenAvg / (maxDim-minDim+1)
+        log.info("creating figure")
+        plt.figure()
+        log.info("plotting figure")
+        plt.errorbar(x, betweenAvg, yerr=[betweenMin, betweenMax], fmt='--o')
+        # plot(x, betweenAvg/maxDim-minDim+1)
+        # You can specify a rotation for the tick labels in degrees or with keywords.
+        plt.xticks(x, x)
+        # Pad margins so that markers don't get clipped by the axes
+        plt.margins(0.2)
+        # Tweak spacing to prevent clipping of tick-labels
+        plt.subplots_adjust(bottom=0.15)
+        log.info("saving figure to {0}".format(filenameTemplate.format(gname)))
+        plt.savefig(filenameTemplate.format(gname))
+        return betweenness
 
 
 def calcAndDrawBetweeness(graph, minDim, maxDim, graphNames, outputDirectory):
