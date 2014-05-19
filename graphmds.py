@@ -12,6 +12,7 @@ import proximitygraph as pg
 
 
 def main():
+    # testArgs = "graphmds.py output/javaMdsj/{0}d_dali_embedding.txt output/javaMdsj/{0}d_graphs/ -b 2 4 -j -1"
     parser = arguments()
     params = parser.parse_args(sys.argv)
     logging.basicConfig(stream=params.log)
@@ -19,18 +20,22 @@ def main():
     batch = params.batch
 
     if len(batch) == 2:
-        # batch proccess from batch[0] to batch[1]
+        # batch process from batch[0] to batch[1]
         for i in range(batch[0], batch[1]):
             calc_graphs(params.jobs, params.outputDirectory.format(i), params.coordinateInputFile.format(i))
     else:
         calc_graphs(params.jobs, params.outputDirectory, params.coordinateInputFile)
 
+
 def calc_graphs(n_jobs, outputDirectory, coordinateInputFile):
     # inputFileName = os.path.splitext(os.path.basename(params.coordinateInputFile))
     # input coordinate file
-    f = open(coordinateInputFile, 'rb')
-    coordinates = np.load(f)
-    f.close()   # np.load actually returns pickle.load, not sure this is necessary
+    if coordinateInputFile.endswith("npz"):
+        f = open(coordinateInputFile, 'rb')
+        coordinates = np.load(f)
+        f.close()   # np.load actually returns pickle.load, not sure this is necessary
+    else:
+        coordinates = np.genfromtxt(coordinateInputFile)
 
     # dimensions
     dimensions = coordinates.shape[1]
