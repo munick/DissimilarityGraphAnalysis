@@ -16,7 +16,9 @@ def main():
     # params = parser.parse_args(['', 'output/test/{0}_graphs/', 'output/test/', '-pos', 'output/test/2_coordinates.npy', '-d', '6', '8'])
     # 'output/dali/{0}_graphs/ output/dali/ -pos output/dali/2_coordinates.npy -d 2 20'
     # dali_2_4 = 'output/dali/{0}_graphs/ output/dali/ -pos output/dali/2_coordinates.npy -d 2 4'.split()
-    # params = parser.parse_args(dali_2_4)
+    # dali_24 = 'adsf output/final/dali/{0}_graphs/ output/final/dali/ -pos output/final/dali/24_coordinates.npy -d 24'.split()
+    # dali_23_24 = 'adsf output/final/dali/{0}_graphs/ output/final/dali/ -pos output/final/dali/24_coordinates.npy -d 23 24'.split()
+    # params = parser.parse_args(dali_24)
     params = parser.parse_args(sys.argv)
     logging.basicConfig(stream=params.log)
     global log
@@ -39,13 +41,13 @@ def main():
 
     graph = generateGraph(graphInputDirectory, graphFilenamePattern, positionFile, outputDirectory, graphNames, minDim, maxDim)
     saveGraph(graph, minDim, maxDim, outputDirectory)
-    log.info("creating graph images")
-    imagedir = outputDirectory + "graphImages/"
-    if not os.path.exists(imagedir):
-        os.makedirs(imagedir)
 
+    # log.info("creating graph images")
+    # imagedir = outputDirectory + "graphImages/"
+    # if not os.path.exists(imagedir):
+    #     os.makedirs(imagedir)
     # output graph images
-    calcAndDrawBetweeness(graph, minDim, maxDim, graphNames, outputDirectory)
+    # calcAndDrawBetweeness(graph, minDim, maxDim, graphNames, outputDirectory)
     # for dim in range(minDim, maxDim+1):
     #     for gname in graphNames:
     #         propertyName = proxiGraphPMName(gname, dim)
