@@ -25,7 +25,7 @@ def main():
 
     # create output dir if necessary
     if not os.path.exists(outputDirectory):
-        os.mkdir(outputDirectory)
+        os.makedirs(outputDirectory)
 
     embeddingFilePath = outputDirectory + "/{0}d_" + dissimilarityMeasure + "_embedding.txt"
     mdsJarPath = os.path.abspath("mdsjava.jar")
