@@ -31,7 +31,7 @@ def main():
     mdsJarPath = os.path.abspath("mdsjava.jar")
 
     # 1) run mds
-    print("running mds")
+    print("\nrunning mds")
     java_mds_command = "java -cp " + mdsJarPath + " edu.sfsu.mdsjava.MdsJava -i " + dissimilarityFilePath
     java_mds_command += " -o " + embeddingFilePath
     java_mds_command += " -d {0} {1}".format(minDim, maxDim)
@@ -42,10 +42,10 @@ def main():
     graphDirectory = outputDirectory + "/{0}d_graphs/"
 
     # 2) run graph creation
-    print("creating proximity graphs")
+    print("\ncreating proximity graphs")
     # create proximity graphs (gabriel, relative neighbor, nn1, nn2, nn3, nn4) for coordinates
     python_proximity_graph_command = "python graphmds.py {0} {1}".format(embeddingFilePath, graphDirectory)
-    python_proximity_graph_command += " -b {0} {1} -j {2}".format(minDim, maxDim, jobs)
+    python_proximity_graph_command += " -b {0} {1} -j {2}".format(minDim, maxDim + 1, jobs)
     print("\tcalling " + python_proximity_graph_command)
     subprocess.call(python_proximity_graph_command, shell=True)
 
@@ -56,7 +56,7 @@ def main():
         os.mkdir(analysisDirectory)
 
     # 3) create graph analysis file
-    print("creating analysis file")
+    print("\ncreating analysis file")
     # create proximity graphs (gabriel, relative neighbor, nn1, nn2, nn3, nn4) for coordinates
     python_analysis_graph_command = "python create_analysis_graph.py " + graphDirectory + " " + analysisDirectory
     python_analysis_graph_command += " -pos " + coordinatesFilePath
@@ -73,7 +73,7 @@ def main():
     print("\tcalling " + python_analysis_command)
     subprocess.call(python_analysis_command, shell=True)
 
-    print("complete. Analysis files are located in: " + analysisDirectory)
+    print("\ncomplete. Analysis files are located in: " + analysisDirectory)
 
 
 def arguments():
