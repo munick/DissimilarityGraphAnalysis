@@ -269,6 +269,9 @@ def get_betweenness(graph, graphName, dimension):
     if propertyMap is None:
         # calc betweenness
         log.info("calculating betweenness of {0}d {1}".format(dimension, graphName))
+        graphTypeAtDim = graph.edge_properties[proxiGraphPMName(graphName, dimension)]
+        graph.set_edge_filter(None)
+        graph.set_edge_filter(graphTypeAtDim)
         propertyMap = graph.new_vertex_property("double")
         bv, be = betweenness(graph, vprop=propertyMap)
         graph.edge_properties[propertyName] = be
@@ -288,6 +291,9 @@ def get_degree(graph, graphName, dimension):
     if propertyMap is None:
         # calc betweenness
         log.info("calculating degree of {0}d {1}".format(dimension, graphName))
+        graphTypeAtDim = graph.edge_properties[proxiGraphPMName(graphName, dimension)]
+        graph.set_edge_filter(None)
+        graph.set_edge_filter(graphTypeAtDim)
         dv = graph.degree_property_map("total")
         graph.vertex_properties[propertyName] = dv
         graph.is_dirty = True
@@ -301,6 +307,9 @@ def get_closeness(graph, graphName, dimension):
     if propertyMap is None:
         # calc closeness
         log.info("calculating closeness of {0}d {1}".format(dimension, graphName))
+        graphTypeAtDim = graph.edge_properties[proxiGraphPMName(graphName, dimension)]
+        graph.set_edge_filter(None)
+        graph.set_edge_filter(graphTypeAtDim)
         propertyMap = graph.new_vertex_property("double")
         closeness(graph, vprop=propertyMap)
         graph.vertex_properties[propertyName] = propertyMap

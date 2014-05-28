@@ -128,6 +128,7 @@ def main():
 
     #### Network Properties and Averages
     if params.networkProperties:
+        log.info("analyzing network properties")
         # define properties
         graphProps = ['size', 'density']
         vertexProps = ['degree', 'betweenness', 'closeness']

@@ -9,7 +9,7 @@ __version__ = 0.1
 def main():
     parser = arguments()
     testArgs = "asdf -dissimilarityFile data/Pspace/dali.dist -dissimilarityMeasure dali -outputDirectory output/test_bundled/ --dimensions 2 4 --jobs -2".split()
-    params = parser.parse_args(testArgs)
+    params = parser.parse_args(sys.argv)
 
     dissimilarityFilePath = os.path.abspath(params.dissimilarityFile)
     outputDirectory = os.path.abspath(params.outputDirectory)
@@ -50,7 +50,7 @@ def main():
     subprocess.call(python_proximity_graph_command, shell=True)
 
     analysisDirectory = outputDirectory + "/analysis/"
-    coordinatesFilePath =  outputDirectory + "/2d_{0}_embedding.npy".format(dissimilarityMeasure)
+    coordinatesFilePath = embeddingFilePath.format(2)
     # create output dir if necessary
     if not os.path.exists(analysisDirectory):
         os.mkdir(analysisDirectory)
